@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Training Programme</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0ede8;
+    --card: #faf9f6;
+    --border: #e0dbd3;
+    --text: #1c1917;
+    --muted: #78716c;
+    --light: #a8a29e;
+    --chest: #c2410c;
+    --back: #15803d;
+    --arms: #6d28d9;
+    --shoulders: #0369a1;
+    --legs: #b45309;
+    --star: #c2410c;
+    --complete: #15803d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
+
+  /* NAV */
+  .nav { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0 16px; }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+  .nav-title { font-size: 15px; font-weight: 500; }
+  .nav-sub { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .reset-btn { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+
+  /* DAY TABS */
+  .tabs { display: flex; overflow-x: auto; gap: 0; padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--border); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; padding: 12px 16px 10px; font-size: 13px; font-weight: 400; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: 'DM Sans', sans-serif; }
+  .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
+
+  /* CONTENT */
+  .content { padding: 16px; display: none; }
+  .content.active { display: block; }
+
+  /* WEEK NOTE */
+  .week-note { background: var(--text); color: var(--bg); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; line-height: 1.7; }
+  .week-note strong { font-weight: 500; }
+
+  /* SECTION */
+  .section-label { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
+  .section-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-chest { background: var(--chest); }
+  .dot-back { background: var(--back); }
+  .dot-arms { background: var(--arms); }
+  .dot-shoulders { background: var(--shoulders); }
+  .dot-legs { background: var(--legs); }
+
+  /* EXERCISE CARD */
+  .ex-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s; }
+  .ex-card.done { border-color: #bbf7d0; background: #f0fdf4; }
+
+  .ex-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 10px; cursor: pointer; }
+  .ex-header-left { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .ex-name { font-size: 14px; line-height: 1.3; }
+  .star { font-size: 9px; color: var(--star); flex-shrink: 0; }
+  .ex-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ex-sets-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+  .weight-pill { display: flex; align-items: center; gap: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .weight-input { font-size: 13px; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); background: none; border: none; outline: none; width: 52px; text-align: center; padding: 5px 4px 5px 10px; }
+  .weight-input::placeholder { color: var(--light); font-weight: 400; }
+  .weight-unit { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); padding-right: 10px; }
+  .ex-card.done .weight-pill { background: #dcfce7; border-color: #86efac; }
+
+  /* SETS TRACKER */
+  .sets-row { display: flex; align-items: center; gap: 8px; padding: 0 14px 12px; flex-wrap: wrap; }
+  .set-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+  .set-btn.done { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .sets-info { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--light); margin-left: 4px; }
+
+  /* PROGRESS NOTE */
+  .prog-note { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .prog-note strong { color: var(--text); font-weight: 500; }
+
+  /* TARGETS */
+  .targets-section { margin-top: 24px; }
+  .targets-title { font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; padding: 0 2px; }
+  .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .target-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .target-name { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px; }
+  .target-nums { display: flex; align-items: baseline; gap: 4px; }
+  .t-start { font-size: 16px; font-weight: 300; }
+  .t-arrow { font-size: 11px; color: var(--light); }
+  .t-end { font-size: 16px; font-weight: 500; color: var(--chest); }
+  .t-unit { font-size: 10px; color: var(--muted); }
+
+  /* SESSION COMPLETE */
+  .complete-bar { display: none; align-items: center; justify-content: space-between; background: var(--complete); color: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; font-weight: 500; }
+  .complete-bar.show { display: flex; }
+  .complete-bar span { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <div>
+      <div class="nav-title">Training Programme</div>
+      <div class="nav-sub">10 weeks — chest + back + arms</div>
+    </div>
+    <button class="reset-btn" onclick="confirmReset()">reset session</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">Day 1 — Chest</button>
+  <button class="tab" onclick="switchTab(1)">Day 2 — Back</button>
+  <button class="tab" onclick="switchTab(2)">Day 3 — Chest</button>
+  <button class="tab" onclick="switchTab(3)">Day 4 — Arms</button>
+  <button class="tab" onclick="switchTab(4)">Targets</button>
+</div>
+
+<!-- DAY 1 -->
+<div class="content active" id="day-0">
+  <div class="week-note"><strong>Week 1 — baseline.</strong> Find your working weights. Finish each set with 1–2 reps in the tank. Log everything. Progression starts week 2.</div>
+  <div class="complete-bar" id="complete-0"><div>Session complete 💪</div><span></span></div>
+
+  <div class="section-label"><span class="section-dot dot-chest"></span>Chest</div>
+  <div class="ex-card" id="ex-0-0">
+    <div class="ex-header" onclick="toggleSets('0-0')">
+      <div class="ex-header-left"><span class="ex-name">Barbell bench press</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">4 × 5–7</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="65" id="w-0-0" onchange="saveWeight('0-0', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-0"></div>
+  </div>
+
+  <div class="ex-card" id="ex-0-1">
+    <div class="ex-header" onclick="toggleSets('0-1')">
+      <div class="ex-header-left"><span class="ex-name">Incline dumbbell press</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="26" id="w-0-1" onchange="saveWeight('0-1', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-1"></div>
+  </div>
+
+  <div class="ex-card" id="ex-0-2">
+    <div class="ex-header" onclick="toggleSets('0-2')">
+      <div class="ex-header-left"><span class="ex-name">Smith machine flat press</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-0-2" onchange="saveWeight('0-2', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-2"></div>
+  </div>
+
+  <div class="ex-card" id="ex-0-3">
+    <div class="ex-header" onclick="toggleSets('0-3')">
+      <div class="ex-header-left"><span class="ex-name">Cable fly (high to low)</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-0-3" onchange="saveWeight('0-3', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-3"></div>
+  </div>
+
+  <div class="section-label"><span class="section-dot dot-arms"></span>Triceps</div>
+
+  <div class="ex-card" id="ex-0-4">
+    <div class="ex-header" onclick="toggleSets('0-4')">
+      <div class="ex-header-left"><span class="ex-name">Cable pushdown (horseshoe)</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-0-4" onchange="saveWeight('0-4', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-4"></div>
+  </div>
+
+  <div class="ex-card" id="ex-0-5">
+    <div class="ex-header" onclick="toggleSets('0-5')">
+      <div class="ex-header-left"><span class="ex-name">Overhead cable extension</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-0-5" onchange="saveWeight('0-5', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-0-5"></div>
+  </div>
+
+  <div class="prog-note"><strong>Progression:</strong> add 2.5kg to bench when you hit 7 reps across all 4 sets for 2 sessions running.</div>
+</div>
+
+<!-- DAY 2 -->
+<div class="content" id="day-1">
+  <div class="complete-bar" id="complete-1"></div>
+
+  <div class="section-label"><span class="section-dot dot-back"></span>Back — lats + rear delts</div>
+
+  <div class="ex-card" id="ex-1-0">
+    <div class="ex-header" onclick="toggleSets('1-0')">
+      <div class="ex-header-left"><span class="ex-name">Close grip lat pulldown</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">4 × 5–7</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="66" id="w-1-0" onchange="saveWeight('1-0', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-0"></div>
+  </div>
+
+  <div class="ex-card" id="ex-1-1">
+    <div class="ex-header" onclick="toggleSets('1-1')">
+      <div class="ex-header-left"><span class="ex-name">Single arm lat pulldown</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-1" onchange="saveWeight('1-1', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-1"></div>
+  </div>
+
+  <div class="ex-card" id="ex-1-2">
+    <div class="ex-header" onclick="toggleSets('1-2')">
+      <div class="ex-header-left"><span class="ex-name">Single arm horizontal (lats)</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-2" onchange="saveWeight('1-2', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-2"></div>
+  </div>
+
+  <div class="ex-card" id="ex-1-3">
+    <div class="ex-header" onclick="toggleSets('1-3')">
+      <div class="ex-header-left"><span class="ex-name">Rear delt machine fly</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-3" onchange="saveWeight('1-3', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-3"></div>
+  </div>
+
+  <div class="ex-card" id="ex-1-4">
+    <div class="ex-header" onclick="toggleSets('1-4')">
+      <div class="ex-header-left"><span class="ex-name">Face pulls</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-4" onchange="saveWeight('1-4', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-4"></div>
+  </div>
+
+  <div class="section-label"><span class="section-dot dot-arms"></span>Biceps</div>
+
+  <div class="ex-card" id="ex-1-5">
+    <div class="ex-header" onclick="toggleSets('1-5')">
+      <div class="ex-header-left"><span class="ex-name">Bayesian cable curl</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-5" onchange="saveWeight('1-5', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-5"></div>
+  </div>
+
+  <div class="ex-card" id="ex-1-6">
+    <div class="ex-header" onclick="toggleSets('1-6')">
+      <div class="ex-header-left"><span class="ex-name">Dumbbell hammer curl</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-1-6" onchange="saveWeight('1-6', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-1-6"></div>
+  </div>
+
+  <div class="prog-note"><strong>Progression:</strong> add 2.5–5kg to pulldown when you hit the top of the rep range for 2 sessions running.</div>
+</div>
+
+<!-- DAY 3 -->
+<div class="content" id="day-2">
+  <div class="complete-bar" id="complete-2"></div>
+
+  <div class="section-label"><span class="section-dot dot-chest"></span>Chest — second hit</div>
+
+  <div class="ex-card" id="ex-2-0">
+    <div class="ex-header" onclick="toggleSets('2-0')">
+      <div class="ex-header-left"><span class="ex-name">Smith machine incline press</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">4 × 6–8</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-0" onchange="saveWeight('2-0', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-0"></div>
+  </div>
+
+  <div class="ex-card" id="ex-2-1">
+    <div class="ex-header" onclick="toggleSets('2-1')">
+      <div class="ex-header-left"><span class="ex-name">Chest fly machine</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-1" onchange="saveWeight('2-1', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-1"></div>
+  </div>
+
+  <div class="ex-card" id="ex-2-2">
+    <div class="ex-header" onclick="toggleSets('2-2')">
+      <div class="ex-header-left"><span class="ex-name">Cable fly (low to high)</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-2" onchange="saveWeight('2-2', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-2"></div>
+  </div>
+
+  <div class="section-label"><span class="section-dot dot-shoulders"></span>Shoulders</div>
+
+  <div class="ex-card" id="ex-2-3">
+    <div class="ex-header" onclick="toggleSets('2-3')">
+      <div class="ex-header-left"><span class="ex-name">Seated DB shoulder press</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">4 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-3" onchange="saveWeight('2-3', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-3"></div>
+  </div>
+
+  <div class="ex-card" id="ex-2-4">
+    <div class="ex-header" onclick="toggleSets('2-4')">
+      <div class="ex-header-left"><span class="ex-name">Dumbbell lateral raise</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-4" onchange="saveWeight('2-4', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-4"></div>
+  </div>
+
+  <div class="ex-card" id="ex-2-5">
+    <div class="ex-header" onclick="toggleSets('2-5')">
+      <div class="ex-header-left"><span class="ex-name">Cable lateral raise</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-5" onchange="saveWeight('2-5', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-5"></div>
+  </div>
+
+  <div class="ex-card" id="ex-2-6">
+    <div class="ex-header" onclick="toggleSets('2-6')">
+      <div class="ex-header-left"><span class="ex-name">Reverse cable fly</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-2-6" onchange="saveWeight('2-6', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-2-6"></div>
+  </div>
+
+  <div class="prog-note"><strong>Note:</strong> different angles to Day 1. Keep 1–2 reps in the tank on every set — volume is the goal here, not max effort.</div>
+</div>
+
+<!-- DAY 4 -->
+<div class="content" id="day-3">
+  <div class="complete-bar" id="complete-3"></div>
+
+  <div class="section-label"><span class="section-dot dot-arms"></span>Biceps</div>
+
+  <div class="ex-card" id="ex-3-0">
+    <div class="ex-header" onclick="toggleSets('3-0')">
+      <div class="ex-header-left"><span class="ex-name">Bayesian cable curl</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-0" onchange="saveWeight('3-0', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-0"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-1">
+    <div class="ex-header" onclick="toggleSets('3-1')">
+      <div class="ex-header-left"><span class="ex-name">Arm curl machine</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-1" onchange="saveWeight('3-1', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-1"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-2">
+    <div class="ex-header" onclick="toggleSets('3-2')">
+      <div class="ex-header-left"><span class="ex-name">Cable curl straight bar</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">2 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-2" onchange="saveWeight('3-2', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-2"></div>
+  </div>
+
+  <div class="section-label"><span class="section-dot dot-arms"></span>Triceps</div>
+
+  <div class="ex-card" id="ex-3-3">
+    <div class="ex-header" onclick="toggleSets('3-3')">
+      <div class="ex-header-left"><span class="ex-name">Overhead cable ext. (V-bar)</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-3" onchange="saveWeight('3-3', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-3"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-4">
+    <div class="ex-header" onclick="toggleSets('3-4')">
+      <div class="ex-header-left"><span class="ex-name">Rope pushdown</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-4" onchange="saveWeight('3-4', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-4"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-5">
+    <div class="ex-header" onclick="toggleSets('3-5')">
+      <div class="ex-header-left"><span class="ex-name">Cable pushdown (horseshoe)</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">2 × 12–15</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-5" onchange="saveWeight('3-5', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-5"></div>
+  </div>
+
+  <div class="section-label"><span class="section-dot dot-back"></span>Back — thickness</div>
+
+  <div class="ex-card" id="ex-3-6">
+    <div class="ex-header" onclick="toggleSets('3-6')">
+      <div class="ex-header-left"><span class="ex-name">Barbell row</span><span class="star">★</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">4 × 5–7</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="55" id="w-3-6" onchange="saveWeight('3-6', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-6"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-7">
+    <div class="ex-header" onclick="toggleSets('3-7')">
+      <div class="ex-header-left"><span class="ex-name">T-bar row</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-7" onchange="saveWeight('3-7', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-7"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-8">
+    <div class="ex-header" onclick="toggleSets('3-8')">
+      <div class="ex-header-left"><span class="ex-name">Close grip seated pull</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 8–10</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-8" onchange="saveWeight('3-8', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-8"></div>
+  </div>
+
+  <div class="ex-card" id="ex-3-9">
+    <div class="ex-header" onclick="toggleSets('3-9')">
+      <div class="ex-header-left"><span class="ex-name">Chest supported row (wide)</span></div>
+      <div class="ex-header-right">
+        <span class="ex-sets-label">3 × 10–12</span>
+        <div class="weight-pill"><input class="weight-input" type="number" placeholder="—" id="w-3-9" onchange="saveWeight('3-9', this.value)" inputmode="decimal"><span class="weight-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="sets-row" id="sets-3-9"></div>
+  </div>
+
+  <div class="prog-note"><strong>Progression:</strong> for arms, add a rep before adding weight. For back, add 2.5–5kg when you hit the top of the rep range for 2 sessions running.</div>
+</div>
+
+<!-- TARGETS -->
+<div class="content" id="day-4">
+  <div class="week-note"><strong>8 week targets.</strong> Track your starred lifts each session. When you hit the top of the rep range for 2 sessions in a row, add weight.</div>
+
+  <div class="targets-section">
+    <div class="targets-title">Strength targets</div>
+    <div class="target-grid">
+      <div class="target-item">
+        <div class="target-name">Bench press</div>
+        <div class="target-nums"><span class="t-start">65</span><span class="t-arrow">→</span><span class="t-end">75</span><span class="t-unit">kg</span></div>
+      </div>
+      <div class="target-item">
+        <div class="target-name">Lat pulldown</div>
+        <div class="target-nums"><span class="t-start">66</span><span class="t-arrow">→</span><span class="t-end">82</span><span class="t-unit">kg</span></div>
+      </div>
+      <div class="target-item">
+        <div class="target-name">Barbell row</div>
+        <div class="target-nums"><span class="t-start">55</span><span class="t-arrow">→</span><span class="t-end">70</span><span class="t-unit">kg</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="targets-section" style="margin-top:20px;">
+    <div class="targets-title">Progression rules</div>
+    <div class="prog-note" style="margin-top:0;">
+      <strong>Starred lifts (★)</strong> — add 2.5kg when you hit the top of the rep range across all sets for 2 sessions in a row.<br><br>
+      <strong>Accessory lifts</strong> — add a rep before you add weight. Once you consistently hit the top of the range, add the smallest increment available.<br><br>
+      <strong>Arms</strong> — prioritise clean form and full range of motion over weight. The numbers will follow.<br><br>
+      <strong>Legs (week 2–3)</strong> — leg press and lying leg curl will be added once the upper body structure is bedded in.
+    </div>
+  </div>
+</div>
+
+<script>
+  // Config: sets per exercise [day][exercise]
+  const setsConfig = {
+    '0-0': 4, '0-1': 3, '0-2': 3, '0-3': 3, '0-4': 3, '0-5': 3,
+    '1-0': 4, '1-1': 3, '1-2': 3, '1-3': 3, '1-4': 3, '1-5': 3, '1-6': 3,
+    '2-0': 4, '2-1': 3, '2-2': 3, '2-3': 4, '2-4': 3, '2-5': 3, '2-6': 3,
+    '3-0': 3, '3-1': 3, '3-2': 2, '3-3': 3, '3-4': 3, '3-5': 2, '3-6': 4, '3-7': 3, '3-8': 3, '3-9': 3
+  };
+
+  // Total exercises per day
+  const dayExCount = { 0: 6, 1: 7, 2: 7, 3: 10 };
+
+  let state = JSON.parse(localStorage.getItem('gymState') || '{}');
+
+  function save() {
+    localStorage.setItem('gymState', JSON.stringify(state));
+  }
+
+  function saveWeight(id, val) {
+    if (!state.weights) state.weights = {};
+    state.weights[id] = val;
+    save();
+  }
+
+  function toggleSet(id, setIdx) {
+    if (!state.sets) state.sets = {};
+    const key = id + '-' + setIdx;
+    state.sets[key] = !state.sets[key];
+    save();
+    renderSet(id, setIdx);
+    checkExDone(id);
+    checkDayDone(parseInt(id.split('-')[0]));
+  }
+
+  function renderSet(id, setIdx) {
+    const btn = document.getElementById('set-' + id + '-' + setIdx);
+    if (!btn) return;
+    const done = state.sets && state.sets[id + '-' + setIdx];
+    btn.classList.toggle('done', !!done);
+    btn.textContent = setIdx + 1;
+  }
+
+  function checkExDone(id) {
+    const total = setsConfig[id] || 3;
+    let allDone = true;
+    for (let i = 0; i < total; i++) {
+      if (!state.sets || !state.sets[id + '-' + i]) { allDone = false; break; }
+    }
+    const card = document.getElementById('ex-' + id);
+    if (card) card.classList.toggle('done', allDone);
+  }
+
+  function checkDayDone(day) {
+    const total = dayExCount[day] || 0;
+    let count = 0;
+    for (let i = 0; i < total; i++) {
+      const id = day + '-' + i;
+      const exTotal = setsConfig[id] || 3;
+      let allDone = true;
+      for (let j = 0; j < exTotal; j++) {
+        if (!state.sets || !state.sets[id + '-' + j]) { allDone = false; break; }
+      }
+      if (allDone) count++;
+    }
+    const bar = document.getElementById('complete-' + day);
+    if (bar) {
+      if (count === total && total > 0) {
+        bar.innerHTML = '<div>Session complete 💪</div><span></span>';
+        bar.classList.add('show');
+      } else {
+        bar.classList.remove('show');
+      }
+    }
+  }
+
+  function toggleSets(id) {
+    const row = document.getElementById('sets-' + id);
+    if (!row) return;
+    if (row.children.length === 0) {
+      buildSetsRow(id);
+    } else {
+      row.innerHTML = '';
+    }
+  }
+
+  function buildSetsRow(id) {
+    const row = document.getElementById('sets-' + id);
+    if (!row) return;
+    const total = setsConfig[id] || 3;
+    row.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'set-btn';
+      btn.id = 'set-' + id + '-' + i;
+      btn.textContent = i + 1;
+      const done = state.sets && state.sets[id + '-' + i];
+      if (done) btn.classList.add('done');
+      btn.onclick = (e) => { e.stopPropagation(); toggleSet(id, i); };
+      row.appendChild(btn);
+    }
+    const info = document.createElement('span');
+    info.className = 'sets-info';
+    info.textContent = 'tap to log';
+    row.appendChild(info);
+  }
+
+  function switchTab(idx) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.content').forEach((c, i) => c.classList.toggle('active', i === idx));
+  }
+
+  function confirmReset() {
+    if (confirm('Reset all set ticks for today? Weights will be kept.')) {
+      if (state.sets) state.sets = {};
+      save();
+      location.reload();
+    }
+  }
+
+  // Init — restore weights
+  function init() {
+    if (state.weights) {
+      Object.entries(state.weights).forEach(([id, val]) => {
+        const input = document.getElementById('w-' + id);
+        if (input && val) input.value = val;
+      });
+    }
+    // Restore set states and check completion
+    Object.keys(setsConfig).forEach(id => {
+      checkExDone(id);
+    });
+    for (let d = 0; d < 4; d++) checkDayDone(d);
+  }
+
+  init();
+</script>
+</body>
+</html>
