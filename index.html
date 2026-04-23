@@ -672,7 +672,271 @@ html, body {
   <button class="rest-skip" id="restSkip">skip</button>
 </div>
 
-<!-- JS comes after panels are added -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(function () {
+  const setsConfig = {
+    '0-0': 4, '0-1': 3, '0-2': 3, '0-3': 3, '0-4': 3, '0-5': 3,
+    '1-0': 4, '1-1': 3, '1-2': 3, '1-3': 3, '1-4': 3, '1-5': 3, '1-6': 3,
+    '2-0': 4, '2-1': 3, '2-2': 3, '2-3': 4, '2-4': 3, '2-5': 3, '2-6': 3,
+    '3-0': 3, '3-1': 3, '3-2': 2, '3-3': 3, '3-4': 3, '3-5': 2, '3-6': 4, '3-7': 3, '3-8': 3, '3-9': 3
+  };
+  const dayExCount = { 0: 6, 1: 7, 2: 7, 3: 10 };
+  const COMP_CIRC = 119.4;
+  const REST_CIRC = 314.16;
+  const REST_DURATION = 60;
+
+  let state = JSON.parse(localStorage.getItem('gymState') || '{}');
+  let restInterval = null;
+  let activeDay = 0;
+  let revealedPanels = new Set();
+  let targetsAnimated = false;
+
+  function save() { localStorage.setItem('gymState', JSON.stringify(state)); }
+
+  function saveWeight(id, val) {
+    if (!state.weights) state.weights = {};
+    state.weights[id] = val;
+    save();
+  }
+
+  // ── SET BUTTONS ──────────────────────────────────────────────
+  function buildSetsRow(id) {
+    const row = document.getElementById('sets-' + id);
+    if (!row || row.children.length) return;
+    const total = setsConfig[id] || 3;
+    for (let i = 0; i < total; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'set-btn';
+      btn.id = 'set-' + id + '-' + i;
+      btn.textContent = i + 1;
+      if (state.sets && state.sets[id + '-' + i]) btn.classList.add('done');
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        tapAnimate(this);
+        toggleSet(id, i);
+      });
+      row.appendChild(btn);
+    }
+    if (window.innerWidth >= 768) initMagnetic(row);
+  }
+
+  function tapAnimate(btn) {
+    gsap.timeline()
+      .to(btn, { scale: 0.82, duration: 0.09, ease: 'power2.in' })
+      .to(btn, { scale: 1,    duration: 0.5,  ease: 'elastic.out(1, 0.4)' });
+  }
+
+  function toggleSet(id, i) {
+    if (!state.sets) state.sets = {};
+    const key = id + '-' + i;
+    state.sets[key] = !state.sets[key];
+    save();
+    const btn = document.getElementById('set-' + id + '-' + i);
+    if (btn) btn.classList.toggle('done', !!state.sets[key]);
+    checkExDone(id);
+    updateRing(parseInt(id.split('-')[0]));
+    if (state.sets[key]) startRest();
+  }
+
+  function checkExDone(id) {
+    const total = setsConfig[id] || 3;
+    let all = true;
+    for (let i = 0; i < total; i++) {
+      if (!state.sets || !state.sets[id + '-' + i]) { all = false; break; }
+    }
+    const card = document.getElementById('ex-' + id);
+    if (card) card.classList.toggle('done', all);
+    return all;
+  }
+
+  function updateRing(day) {
+    if (day > 3) return;
+    const total = dayExCount[day] || 0;
+    let done = 0;
+    for (let i = 0; i < total; i++) if (checkExDone(day + '-' + i)) done++;
+    const ring  = document.getElementById('ring-' + day);
+    const label = document.getElementById('ring-count-' + day);
+    if (ring)  ring.style.strokeDashoffset = COMP_CIRC * (1 - done / total);
+    if (label) label.textContent = done + '/' + total;
+  }
+
+  // ── CARD EXPAND ──────────────────────────────────────────────
+  document.getElementById('dayTrack').addEventListener('click', function (e) {
+    if (e.target.tagName === 'INPUT') return;
+    const header = e.target.closest('.ex-header');
+    if (!header) return;
+    const card = header.closest('.ex-card');
+    if (!card) return;
+    const id = header.dataset.id;
+    const opening = !card.classList.contains('open');
+    if (opening) buildSetsRow(id);
+    card.classList.toggle('open', opening);
+  });
+
+  document.getElementById('dayTrack').addEventListener('change', function (e) {
+    if (e.target.classList.contains('weight-input')) {
+      saveWeight(e.target.id.replace('w-', ''), e.target.value);
+    }
+  });
+
+  // ── REST TIMER ───────────────────────────────────────────────
+  function startRest() {
+    if (restInterval) clearInterval(restInterval);
+    const overlay = document.getElementById('restOverlay');
+    const secsEl  = document.getElementById('restSecs');
+    const arc     = document.getElementById('restArc');
+    overlay.classList.add('visible');
+    let elapsed = 0;
+    secsEl.textContent = REST_DURATION;
+    arc.style.strokeDashoffset = 0;
+    restInterval = setInterval(function () {
+      elapsed += 0.1;
+      secsEl.textContent = Math.ceil(Math.max(0, REST_DURATION - elapsed));
+      arc.style.strokeDashoffset = REST_CIRC * (elapsed / REST_DURATION);
+      if (elapsed >= REST_DURATION) dismissRest();
+    }, 100);
+  }
+
+  function dismissRest() {
+    clearInterval(restInterval);
+    restInterval = null;
+    const overlay = document.getElementById('restOverlay');
+    gsap.to(overlay, {
+      opacity: 0, scale: 0.94, duration: 0.28, ease: 'power2.in',
+      onComplete: function () {
+        overlay.classList.remove('visible');
+        gsap.set(overlay, { scale: 1, opacity: 1 });
+      }
+    });
+  }
+
+  document.getElementById('restSkip').addEventListener('click', dismissRest);
+
+  // ── GSAP PANEL REVEAL ────────────────────────────────────────
+  function revealPanel(idx) {
+    if (revealedPanels.has(idx)) return;
+    revealedPanels.add(idx);
+    const list = document.getElementById('list-' + idx);
+    if (!list) return;
+    const items = list.querySelectorAll('.section-label, .ex-card, .prog-note');
+    gsap.fromTo(items,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.55, stagger: 0.07, ease: 'power3.out', delay: 0.05 }
+    );
+  }
+
+  function revealTargets() {
+    if (targetsAnimated) return;
+    targetsAnimated = true;
+    const items = document.querySelectorAll('.target-card, .targets-heading, .targets-list .prog-note');
+    gsap.fromTo(items, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08, ease: 'power3.out' });
+    document.querySelectorAll('.t-to').forEach(function (el) {
+      const target = parseFloat(el.dataset.target);
+      const obj = { val: 0 };
+      gsap.to(obj, { val: target, duration: 1.6, ease: 'power2.out',
+        onUpdate: function () { el.textContent = Math.round(obj.val); }
+      });
+    });
+    document.querySelectorAll('.target-bar-fill').forEach(function (bar) {
+      setTimeout(function () { bar.style.width = bar.dataset.pct + '%'; }, 300);
+    });
+  }
+
+  // ── HORIZONTAL SCROLL + PILL SYNC ────────────────────────────
+  const track = document.getElementById('dayTrack');
+  let scrollTick = null;
+
+  function onSnapEnd() {
+    const idx = Math.round(track.scrollLeft / track.offsetWidth);
+    if (idx === activeDay) return;
+    activeDay = idx;
+    updatePills(idx);
+    if (idx < 4) revealPanel(idx);
+    else revealTargets();
+  }
+
+  track.addEventListener('scroll', function () {
+    clearTimeout(scrollTick);
+    scrollTick = setTimeout(onSnapEnd, 90);
+  }, { passive: true });
+
+  if ('onscrollend' in window) track.addEventListener('scrollend', onSnapEnd);
+
+  function updatePills(idx) {
+    document.querySelectorAll('.day-pill').forEach(function (p, i) {
+      p.classList.toggle('active', i === idx);
+    });
+  }
+
+  document.getElementById('dayNav').addEventListener('click', function (e) {
+    const pill = e.target.closest('.day-pill');
+    if (!pill) return;
+    track.scrollTo({ left: parseInt(pill.dataset.idx) * track.offsetWidth, behavior: 'smooth' });
+  });
+
+  // ── MAGNETIC BUTTONS (desktop) ───────────────────────────────
+  function initMagnetic(row) {
+    row.querySelectorAll('.set-btn').forEach(function (btn) {
+      btn.addEventListener('mousemove', function (e) {
+        const r = btn.getBoundingClientRect();
+        gsap.to(btn, { x: (e.clientX - r.left - r.width / 2) * 0.3,
+                       y: (e.clientY - r.top  - r.height/ 2) * 0.3, duration: 0.2, ease: 'power2.out' });
+      });
+      btn.addEventListener('mouseleave', function () {
+        gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+      });
+    });
+  }
+
+  // ── AMBIENT PARTICLES ────────────────────────────────────────
+  function buildParticles() {
+    const field = document.getElementById('ambientField');
+    [
+      { s: 3, t: '10%', l: '7%',  d: '22s', dl: '0s',   dx: '16px',  dy: '-14px', dx2: '-9px',  dy2: '10px',  o: 0.035 },
+      { s: 2, t: '35%', l: '83%', d: '29s', dl: '-9s',  dx: '-18px', dy: '-12px', dx2: '11px',  dy2: '15px',  o: 0.025 },
+      { s: 4, t: '62%', l: '14%', d: '20s', dl: '-4s',  dx: '13px',  dy: '17px',  dx2: '-8px',  dy2: '-11px', o: 0.04  },
+      { s: 2, t: '80%', l: '68%', d: '33s', dl: '-15s', dx: '-11px', dy: '-15px', dx2: '9px',   dy2: '9px',   o: 0.028 },
+      { s: 3, t: '22%', l: '54%', d: '26s', dl: '-6s',  dx: '15px',  dy: '11px',  dx2: '-13px', dy2: '-7px',  o: 0.03  },
+      { s: 2, t: '50%', l: '38%', d: '36s', dl: '-20s', dx: '-7px',  dy: '13px',  dx2: '10px',  dy2: '-6px',  o: 0.02  },
+      { s: 3, t: '88%', l: '28%', d: '21s', dl: '-11s', dx: '19px',  dy: '-9px',  dx2: '-14px', dy2: '11px',  o: 0.033 },
+    ].forEach(function (c) {
+      const p = document.createElement('span');
+      p.className = 'particle';
+      p.style.cssText = 'width:' + c.s + 'px;height:' + c.s + 'px;top:' + c.t + ';left:' + c.l +
+        ';opacity:' + c.o + ';--d:' + c.d + ';--delay:' + c.dl +
+        ';--dx:' + c.dx + ';--dy:' + c.dy + ';--dx2:' + c.dx2 + ';--dy2:' + c.dy2;
+      field.appendChild(p);
+    });
+  }
+
+  // ── RESET ────────────────────────────────────────────────────
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (confirm('Reset all set ticks? Weights will be kept.')) {
+      state.sets = {};
+      save();
+      location.reload();
+    }
+  });
+
+  // ── INIT ─────────────────────────────────────────────────────
+  function init() {
+    buildParticles();
+    Object.keys(setsConfig).forEach(buildSetsRow);
+    if (state.weights) {
+      Object.entries(state.weights).forEach(function ([id, val]) {
+        const el = document.getElementById('w-' + id);
+        if (el && val) el.value = val;
+      });
+    }
+    Object.keys(setsConfig).forEach(checkExDone);
+    for (let d = 0; d < 4; d++) updateRing(d);
+    revealPanel(0);
+  }
+
+  init();
+})();
+</script>
 
 </body>
 </html>
