@@ -26,7 +26,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body {
-  height: 100%;
+  height: 100dvh;
   overflow: hidden;
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
@@ -57,7 +57,7 @@ html, body {
 .app-layout {
   position: relative;
   z-index: 1;
-  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -751,8 +751,14 @@ html, body {
   <button class="rest-skip" id="restSkip">skip</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" async></script>
 <script>
+/* Minimal GSAP shim so the page never breaks if CDN is blocked */
+function _gsapShim() {
+  if (typeof gsap !== 'undefined') return gsap;
+  const noop = () => ({ then: noop });
+  return { to: noop, fromTo: noop, set: noop, timeline: () => ({ to: noop }) };
+}
 (function () {
   const setsConfig = {
     '0-0': 4, '0-1': 3, '0-2': 3, '0-3': 3, '0-4': 3, '0-5': 3,
@@ -801,7 +807,7 @@ html, body {
   }
 
   function tapAnimate(btn) {
-    gsap.timeline()
+    _gsapShim().timeline()
       .to(btn, { scale: 0.82, duration: 0.09, ease: 'power2.in' })
       .to(btn, { scale: 1,    duration: 0.5,  ease: 'elastic.out(1, 0.4)' });
   }
@@ -881,11 +887,11 @@ html, body {
     clearInterval(restInterval);
     restInterval = null;
     const overlay = document.getElementById('restOverlay');
-    gsap.to(overlay, {
+    _gsapShim().to(overlay, {
       opacity: 0, scale: 0.94, duration: 0.28, ease: 'power2.in',
       onComplete: function () {
         overlay.classList.remove('visible');
-        gsap.set(overlay, { scale: 1, opacity: 1 });
+        _gsapShim().set(overlay, { scale: 1, opacity: 1 });
       }
     });
   }
@@ -899,7 +905,7 @@ html, body {
     const list = document.getElementById('list-' + idx);
     if (!list) return;
     const items = list.querySelectorAll('.section-label, .ex-card, .prog-note');
-    gsap.fromTo(items,
+    _gsapShim().fromTo(items,
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.55, stagger: 0.07, ease: 'power3.out', delay: 0.05 }
     );
@@ -909,11 +915,11 @@ html, body {
     if (targetsAnimated) return;
     targetsAnimated = true;
     const items = document.querySelectorAll('.target-card, .targets-heading, .targets-list .prog-note');
-    gsap.fromTo(items, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08, ease: 'power3.out' });
+    _gsapShim().fromTo(items, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08, ease: 'power3.out' });
     document.querySelectorAll('.t-to').forEach(function (el) {
       const target = parseFloat(el.dataset.target);
       const obj = { val: 0 };
-      gsap.to(obj, { val: target, duration: 1.6, ease: 'power2.out',
+      _gsapShim().to(obj, { val: target, duration: 1.6, ease: 'power2.out',
         onUpdate: function () { el.textContent = Math.round(obj.val); }
       });
     });
@@ -959,11 +965,11 @@ html, body {
     row.querySelectorAll('.set-btn').forEach(function (btn) {
       btn.addEventListener('mousemove', function (e) {
         const r = btn.getBoundingClientRect();
-        gsap.to(btn, { x: (e.clientX - r.left - r.width / 2) * 0.3,
+        _gsapShim().to(btn, { x: (e.clientX - r.left - r.width / 2) * 0.3,
                        y: (e.clientY - r.top  - r.height/ 2) * 0.3, duration: 0.2, ease: 'power2.out' });
       });
       btn.addEventListener('mouseleave', function () {
-        gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+        _gsapShim().to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
       });
     });
   }
@@ -1031,7 +1037,7 @@ html, body {
     });
 
     setTimeout(function () {
-      gsap.to(welcome, {
+      _gsapShim().to(welcome, {
         opacity: 0, duration: 0.25, ease: 'power2.in',
         onComplete: function () { welcome.remove(); }
       });
@@ -1040,7 +1046,7 @@ html, body {
 
   buildWelcomeGrid();
   document.getElementById('welcomeBtn').addEventListener('click', function () {
-    gsap.to(this, { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1,
+    _gsapShim().to(this, { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1,
       onComplete: dismissWelcome });
   });
 
