@@ -527,6 +527,74 @@ html, body {
 }
 .rest-skip:active { background: var(--border); }
 
+/* ─── WELCOME SCREEN ─── */
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+.welcome-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.welcome-eyebrow {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ghost);
+}
+.welcome-title {
+  font-size: clamp(52px, 14vw, 96px);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--text);
+}
+.welcome-title em { font-style: italic; color: var(--muted); }
+.welcome-sub {
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: var(--ghost);
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+.welcome-btn {
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--surface);
+  background: var(--text);
+  border: none;
+  border-radius: 30px;
+  padding: 14px 40px;
+  cursor: pointer;
+  transition: transform 150ms, opacity 150ms;
+}
+.welcome-btn:active { transform: scale(0.96); opacity: 0.85; }
+
+/* Grid cells overlay for the wipe exit */
+.welcome-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+}
+.wc {
+  background: var(--bg);
+  transition: opacity 0s; /* JS controls timing per-cell */
+}
+
 /* ─── DESKTOP ─── */
 @media (min-width: 768px) {
   .day-hero        { padding: 36px 32px 24px; }
@@ -540,6 +608,17 @@ html, body {
 </style>
 </head>
 <body>
+
+<!-- WELCOME SCREEN -->
+<div class="welcome" id="welcome">
+  <div class="welcome-body">
+    <span class="welcome-eyebrow">10 weeks · 4 days</span>
+    <h1 class="welcome-title">Train<em>ing</em></h1>
+    <span class="welcome-sub">Chest · Back · Arms · Shoulders</span>
+  </div>
+  <button class="welcome-btn" id="welcomeBtn">Begin</button>
+  <div class="welcome-grid" id="welcomeGrid"></div>
+</div>
 
 <div class="ambient-field" id="ambientField"></div>
 
@@ -917,6 +996,52 @@ html, body {
       save();
       location.reload();
     }
+  });
+
+  // ── WELCOME SCREEN ───────────────────────────────────────────
+  function buildWelcomeGrid() {
+    const cols = 12, rows = 7;
+    const grid = document.getElementById('welcomeGrid');
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+    grid.style.gridTemplateRows    = 'repeat(' + rows + ', 1fr)';
+    const cells = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'wc';
+        const dist = Math.hypot(x - (cols - 1) / 2, y - (rows - 1) / 2);
+        cell.dataset.dist = dist;
+        grid.appendChild(cell);
+        cells.push(cell);
+      }
+    }
+    return cells;
+  }
+
+  function dismissWelcome() {
+    const welcome = document.getElementById('welcome');
+    const cells   = Array.from(welcome.querySelectorAll('.wc'));
+    const maxDist = Math.max(...cells.map(c => parseFloat(c.dataset.dist)));
+    const wipeMs  = 520;
+
+    cells.forEach(function (cell) {
+      const delay = (parseFloat(cell.dataset.dist) / maxDist) * wipeMs;
+      cell.style.transition = 'opacity 180ms ease';
+      setTimeout(function () { cell.style.opacity = '0'; }, delay);
+    });
+
+    setTimeout(function () {
+      gsap.to(welcome, {
+        opacity: 0, duration: 0.25, ease: 'power2.in',
+        onComplete: function () { welcome.remove(); }
+      });
+    }, wipeMs + 80);
+  }
+
+  buildWelcomeGrid();
+  document.getElementById('welcomeBtn').addEventListener('click', function () {
+    gsap.to(this, { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1,
+      onComplete: dismissWelcome });
   });
 
   // ── INIT ─────────────────────────────────────────────────────
